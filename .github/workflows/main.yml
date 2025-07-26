@@ -1,0 +1,29 @@
+name: Hourly Bible Reflection Post
+
+on:
+  schedule:
+    - cron: '15 * * * *'  # كل ساعة في الدقيقة 2
+  workflow_dispatch:
+
+jobs:
+  post-reflection:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: pip install -r requirements.txt
+
+    - name: Run script
+      env:
+        ACCESS_TOKEN: ${{ secrets.ACCESS_TOKEN }}
+        PAGE_ID: ${{ secrets.PAGE_ID }}
+        GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      run: python main.py
