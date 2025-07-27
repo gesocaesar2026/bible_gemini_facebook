@@ -1,73 +1,106 @@
 import os
+
+import json
+import os
+import random
 import requests
+import google.generativeai as genai
 
-# إعدادات البيئة
-ACCESS_TOKEN = "EAAUmqjbT57QBOZBdPSIvCfyGmfSEyFx2tWLlLNaMZAO9ZBKCd4EJEFhtbgZBm87N6KNYqvl5QGlLurkgHLjVNFUPU9MVJXtfQbGlz45hJX79Wd3PwEp7OF50THiZAqG0A0M3DNF290CdPeYIEMG5YB99uFg3UKK04iqDZBRZCkYWMbE7ltZCHl4ZAEjMSWHi1NeYIgEcs25WIdo7kIRwqWdgZD"
-PAGE_ID = "90118319153"
+# إعداد المفتاح
 GEMINI_API_KEY = "AIzaSyDybAXRfYv832CWNwY7rrVt_YNfYmkHpz8"
+genai.configure(api_key=GEMINI_API_KEY)
 
-def get_bible_message():
-    prompt = """
-    أعطني آية عشوائية من الكتاب المقدس، وتأمل طويل باللغة العربية بأسلوب مشجع ومليء بالرجاء، كأن السيد المسيح يتحدث مباشرة إلى القارئ ويشجّعه بكلمات مملوءة حبًا ورحمة.
+# إعداد نموذج Gemini
+model = genai.GenerativeModel("gemini-pro")
 
-    صيغة الرد يجب أن تكون هكذا:
+# إعداد فيسبوك
+PAGE_ID = "90118319153"
+ACCESS_TOKEN = "EAAUmqjbT57QBOZBdPSIvCfyGmfSEyFx2tWLlLNaMZAO9ZBKCd4EJEFhtbgZBm87N6KNYqvl5QGlLurkgHLjVNFUPU9MVJXtfQbGlz45hJX79Wd3PwEp7OF50THiZAqG0A0M3DNF290CdPeYIEMG5YB99uFg3UKK04iqDZBRZCkYWMbE7ltZCHl4ZAEjMSWHi1NeYIgEcs25WIdo7kIRwqWdgZD"
 
-    الآية: ...
-    المرجع: ...
-    التأمل: ...
-    """
 
-    headers = {
-        "Content-Type": "application/json",
-        "Authorization": f"Bearer {GEMINI_API_KEY}"
+# مسار ملف تخزين البوستات التي تم الرد عليها
+REPLIED_FILE = "replied.json"
+
+# تحميل البوستات التي تم الرد عليها
+if os.path.exists(REPLIED_FILE):
+    with open(REPLIED_FILE, "r", encoding="utf-8") as f:
+        replied = json.load(f)
+else:
+    replied = []
+
+# استدعاء أحدث المنشورات
+def get_latest_posts():
+    url = f"https://graph.facebook.com/{PAGE_ID}/posts"
+    params = {
+        "access_token": ACCESS_TOKEN,
+        "limit": 5
     }
+    res = requests.get(url, params=params)
+    return res.json().get("data", [])
 
-    payload = {
-        "contents": [{"parts": [{"text": prompt}]}]
-    }
-
-    response = requests.post(
-        f"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={GEMINI_API_KEY}",
-        headers=headers,
-        json=payload
-    )
-
+# توليد التأمل من Gemini
+def get_bible_reflection():
+    prompt = "أعطني آية عشوائية من الكتاب المقدس وتأمل مشجع باللغة العربية، ليتم نشرها على الفيسبوك. اجعل النص طويلًا وبأسلوب إنساني وقريب من القلب."
     try:
-        result = response.json()
-        print("📥 Gemini Response:", result)  # <== طباعة كاملة للاستجابة
-
-        text = result["candidates"][0]["content"]["parts"][0]["text"]
-
-        # استخراج البيانات يدويًا
-        verse = ""
-        reference = ""
-        reflection = ""
-        for line in text.splitlines():
-            if line.startswith("الآية:"):
-                verse = line.replace("الآية:", "").strip()
-            elif line.startswith("المرجع:"):
-                reference = line.replace("المرجع:", "").strip()
-            elif line.startswith("التأمل:"):
-                reflection = line.replace("التأمل:", "").strip()
-
-        final_message = f"📖 {verse} ({reference})\n\n✝️ {reflection}"
-        return final_message
-
+        response = model.generate_content(prompt)
+        return response.text.strip()
     except Exception as e:
-        print("❌ خطأ أثناء تحليل رد Gemini:", e)
-        print(response.text)
-        return "🙏 الرب يباركك! شاركنا بأكثر آية تلمسك ❤️"
+        print(f"❌ خطأ من Gemini: {e}")
+        return None
 
+# نشر منشور على فيسبوك
 def post_to_facebook(message):
     url = f"https://graph.facebook.com/{PAGE_ID}/feed"
     params = {
-        "message": message,
-        "access_token": ACCESS_TOKEN
+        "access_token": ACCESS_TOKEN,
+        "message": message
     }
-    response = requests.post(url, data=params)
-    print("📤 Facebook Response:", response.status_code, response.text)
+    res = requests.post(url, data=params)
+    print(f"📤 Facebook Response: {res.status_code} {res.text}")
+    return res.ok
 
-if __name__ == "__main__":
-    msg = get_bible_message()
-    print("📝 Final Message:\n", msg)
-    post_to_facebook(msg)
+# حفظ المنشورات التي تم الرد عليها
+def save_replied():
+    with open(REPLIED_FILE, "w", encoding="utf-8") as f:
+        json.dump(replied, f, ensure_ascii=False, indent=2)
+
+# ================================
+# 📌 الخط الرئيسي
+# ================================
+
+# 1. جلب أحدث منشورات الصفحة
+posts = get_latest_posts()
+
+# 2. اختيار أول منشور لم يتم الرد عليه
+target_post = None
+for post in posts:
+    if post["id"] not in replied:
+        target_post = post
+        break
+
+if not target_post:
+    print("✅ لا توجد منشورات جديدة للرد عليها.")
+    exit()
+
+print(f"🎯 جاري الرد على المنشور: {target_post['id']}")
+
+# 3. توليد التأمل
+reflection = get_bible_reflection()
+
+if not reflection:
+    print("❌ فشل في الحصول على تأمل من Gemini.")
+    exit()
+
+# 4. تكوين الرسالة النهائية
+final_message = reflection + "\n\n🙏 الرب يباركك! شاركنا بأكثر آية تلمسك ❤️"
+
+# 5. نشر على فيسبوك
+success = post_to_facebook(final_message)
+
+# 6. حفظ المنشور في قائمة "تم الرد عليه"
+if success:
+    replied.append(target_post["id"])
+    save_replied()
+    print("✅ تم الرد على المنشور وتحديث الملف.")
+else:
+    print("❌ فشل في النشر على فيسبوك.")
