@@ -10,7 +10,7 @@ GEMINI_API_KEY = "AIzaSyDybAXRfYv832CWNwY7rrVt_YNfYmkHpz8"
 genai.configure(api_key=GEMINI_API_KEY)
 
 # إعداد نموذج Gemini
-model = genai.GenerativeModel("gemini-pro")
+model = genai.GenerativeModel("gemini-2.0-flash:generateContent")
 
 # إعداد فيسبوك
 PAGE_ID = "90118319153"
