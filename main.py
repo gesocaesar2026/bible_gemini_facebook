@@ -55,6 +55,7 @@ def get_bible_message():
 
     except Exception as e:
         print("❌ خطأ أثناء تحليل رد Gemini:", e)
+        print(response_data)
         return " اكتب اكتر ايه بتحبها. 🙏"
 
 def post_to_facebook(message):
