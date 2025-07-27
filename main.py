@@ -1,65 +1,66 @@
 import os
 import requests
-from datetime import datetime
+import json
 
-# ---------- 1. إعداد المفاتيح ----------
 GEMINI_API_KEY = "AIzaSyDybAXRfYv832CWNwY7rrVt_YNfYmkHpz8"
 ACCESS_TOKEN = "EAAUmqjbT57QBOZBdPSIvCfyGmfSEyFx2tWLlLNaMZAO9ZBKCd4EJEFhtbgZBm87N6KNYqvl5QGlLurkgHLjVNFUPU9MVJXtfQbGlz45hJX79Wd3PwEp7OF50THiZAqG0A0M3DNF290CdPeYIEMG5YB99uFg3UKK04iqDZBRZCkYWMbE7ltZCHl4ZAEjMSWHi1NeYIgEcs25WIdo7kIRwqWdgZD"
 
-PAGE_ID ="90118319153"
+PAGE_ID = "90118319153"
 
-# ---------- 2. توليد آية وتأمل من جيميناي ----------
-def generate_bible_reflection():
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={GEMINI_API_KEY}"
+def generate_message():
+    print("🎯 جاري توليد آية وتأمل من Gemini...")
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={GEMINI_API_KEY}"
+    
+    prompt = """
+    من فضلك اختر آية من الكتاب المقدس بشكل عشوائي، ثم اكتب بعدها تأمل روحي يشجع القارئ ويلمس قلبه كأنه من الرب يسوع نفسه، بأسلوب محب ومشجع، لا يتجاوز 500 حرف.
+    التنسيق المطلوب:
+    📖  (ضع هنا الآية)
+    💬  (ضع هنا التأمل)
+    """
 
-    prompt = (
-        "اكتبلي آية من الكتاب المقدس مناسبة لأي شخص بيمر بظروف صعبة، "
-        "وتحتها تأمل قصير باللهجة المصرية، يكون كأن المسيح هو اللي بيكلم الشخص وبيطبطب عليه، "
-        "خلي التأمل قصير ومشجع ويلمس القلب، لا تضف مقدمات ولا عناوين، فقط الآية والتأمل في سطرين أو ثلاثة."
-    )
-
+    headers = {"Content-Type": "application/json"}
     data = {
         "contents": [
             {
-                "parts": [{"text": prompt}]
+                "parts": [
+                    {"text": prompt}
+                ]
             }
         ]
     }
 
-    response = requests.post(url, json=data)
-    
+    response = requests.post(url, headers=headers, json=data)
     if response.status_code == 200:
-        result = response.json()
-        return result["candidates"][0]["content"]["parts"][0]["text"]
+        try:
+            content = response.json()["candidates"][0]["content"]["parts"][0]["text"]
+            print("✅ تم توليد الرسالة بنجاح.")
+            return content.strip()
+        except Exception as e:
+            print("❌ فشل في قراءة رد Gemini:", e)
     else:
         print(f"❌ خطأ من Gemini: {response.status_code} - {response.text}")
-        return None
+    return None
 
-# ---------- 3. نشر المنشور على فيسبوك ----------
 def post_to_facebook(message):
-    url = f"https://graph.facebook.com/{PAGE_ID}/feed"
+    print("📤 جاري النشر على فيسبوك...")
+    post_url = f"https://graph.facebook.com/{PAGE_ID}/feed"
     params = {
         "message": message,
         "access_token": ACCESS_TOKEN
     }
-    response = requests.post(url, data=params)
-    
+
+    response = requests.post(post_url, data=params)
     if response.status_code == 200:
-        post_id = response.json().get("id")
-        print(f"✅ تم نشر الرسالة بنجاح على فيسبوك. ID: {post_id}")
+        print("✅ تم النشر بنجاح على فيسبوك.")
     else:
-        print(f"❌ خطأ أثناء النشر على فيسبوك: {response.status_code} - {response.text}")
+        print(f"❌ فشل النشر على فيسبوك: {response.status_code} - {response.text}")
 
-# ---------- 4. التشغيل التلقائي ----------
 def main():
-    print(f"🎯 [{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] جاري توليد آية وتأمل من Gemini...")
-    message = generate_bible_reflection()
-
+    message = generate_message()
     if message:
-        print("✅ تم التوليد بنجاح. جاري النشر على فيسبوك...")
         post_to_facebook(message)
     else:
-        print("❌ لم يتم توليد رسالة. لم يتم النشر.")
+        print("🚫 لم يتم توليد أو نشر الرسالة.")
 
 if __name__ == "__main__":
     main()
