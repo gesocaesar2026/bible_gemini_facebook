@@ -2,20 +2,20 @@ import os
 import requests
 import json
 
+# مفاتيح API
 GEMINI_API_KEY = "AIzaSyDybAXRfYv832CWNwY7rrVt_YNfYmkHpz8"
 ACCESS_TOKEN = "EAAUmqjbT57QBOZBdPSIvCfyGmfSEyFx2tWLlLNaMZAO9ZBKCd4EJEFhtbgZBm87N6KNYqvl5QGlLurkgHLjVNFUPU9MVJXtfQbGlz45hJX79Wd3PwEp7OF50THiZAqG0A0M3DNF290CdPeYIEMG5YB99uFg3UKK04iqDZBRZCkYWMbE7ltZCHl4ZAEjMSWHi1NeYIgEcs25WIdo7kIRwqWdgZD"
-
 PAGE_ID = "90118319153"
 
 def generate_message():
-    print("🎯 جاري توليد آية وتأمل من Gemini...")
+    print("🎯 جاري توليد رسالة مؤثرة من الرب يسوع بواسطة Gemini...")
+
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={GEMINI_API_KEY}"
-    
+
     prompt = """
-    من فضلك اختر آية من الكتاب المقدس بشكل عشوائي، ثم اكتب بعدها تأمل روحي يشجع القارئ ويلمس قلبه كأنه من الرب يسوع نفسه، بأسلوب محب ومشجع، لا يتجاوز 500 حرف.
-    التنسيق المطلوب:
-    📖  (ضع هنا الآية)
-    💬  (ضع هنا التأمل)
+    من فضلك اكتب رسالة مؤثرة وكأنها من الرب يسوع إلى القارئ، بأسلوب حنون ومشجع ولمس للمشاعر.
+    اجعلها شخصية تبدأ بنداء مثل "يا ابني" أو "يا ابنتي" وتكلم كأن المسيح يخاطب شخصًا مجروحًا ويشجعه.
+    لا تضع آيات، فقط اجعلها رسالة مشجعة، لا تزيد عن 500 حرف، باللهجة المصرية الخفيفة المقبولة روحيًا.
     """
 
     headers = {"Content-Type": "application/json"}
@@ -58,6 +58,9 @@ def post_to_facebook(message):
 def main():
     message = generate_message()
     if message:
+        print("\n📩 الرسالة التي تم توليدها:\n")
+        print(message)
+        print("\n----------------------------------------\n")
         post_to_facebook(message)
     else:
         print("🚫 لم يتم توليد أو نشر الرسالة.")
